@@ -1,27 +1,39 @@
 import random
 import numpy as np
-
-train = True
+import os
 
 
 def sigmoid(x):
     return 1 / (1 + (np.exp(-x)))
 
-
 def dsigmoid(x):
     return x * (1 - x)
 
-
-# Função para criar matriz
-def criaMatriz(linha, coluna):
+def createMatrix(linha, coluna):
     data = []
-    for i in range(linha):
+    for _ in range(linha):
         arr = []
-        for j in range(coluna):
+        for _ in range(coluna):
             arr.append(random.random() * 2 - 1)
         data.append(arr)
 
     return data
+
+if os.path.exists('config.txt'):
+    with open('./config.txt', 'r+') as configFile:
+        lines = configFile.read().split('#\n')
+        bias = lines[0].split('_')
+        weigths = lines[1].split('_')
+else:
+    print('Arquivo de configuração não encontrado, criando novo arquivo...')
+    bias = False
+    weigths = False
+    with open('./config.txt', 'w') as configFile:
+        configFile.write('')
+
+def writeConfig(bias_ih, bias_hh, bias_ho, weigths_ih, weigths_hh, weigths_ho):
+    with open('config.txt', 'w') as configFile:
+        configFile.writelines([str(bias_ih.tolist()), '_', str(bias_hh.tolist()), '_', str(bias_ho.tolist()), '\n#\n', str(weigths_ih.tolist()), '_', str(weigths_hh.tolist()), '_', str(weigths_ho.tolist())])
 
 
 # Função que cria a rede
@@ -32,23 +44,20 @@ class RedeNeural:
         self.hh_nodes = hh_nodes
         self.o_nodes = o_nodes
 
-        self.bias_ih = np.array(criaMatriz(self.h_nodes, 1))
-        self.bias_hh = np.array(criaMatriz(self.hh_nodes, 1))
-        self.bias_ho = np.array(criaMatriz(self.o_nodes, 1))
+        self.bias_ih = np.array(eval(bias[0]) if bias and eval(bias[0]) else createMatrix(self.h_nodes, 1))
+        self.bias_hh = np.array(eval(bias[1]) if bias and eval(bias[1]) else createMatrix(self.hh_nodes, 1))
+        self.bias_ho = np.array(eval(bias[2]) if bias and eval(bias[2]) else createMatrix(self.o_nodes, 1))
 
-        self.weigths_ih = np.array(criaMatriz(self.h_nodes, self.i_nodes))
-        self.weigths_hh = np.array(criaMatriz(self.hh_nodes, self.h_nodes))
-        self.weigths_ho = np.array(criaMatriz(self.o_nodes, self.hh_nodes))
+        self.weigths_ih = np.array(eval(weigths[0]) if weigths and eval(weigths[0]) else createMatrix(self.h_nodes, self.i_nodes))
+        self.weigths_hh = np.array(eval(weigths[1]) if weigths and eval(weigths[1]) else createMatrix(self.hh_nodes, self.h_nodes))
+        self.weigths_ho = np.array(eval(weigths[2]) if weigths and eval(weigths[2]) else createMatrix(self.o_nodes, self.hh_nodes))
+        # self.weigths_ih = np.array(criaMatriz(self.h_nodes, self.i_nodes))
+        # self.weigths_hh = np.array(criaMatriz(self.hh_nodes, self.h_nodes))
+        # self.weigths_ho = np.array(criaMatriz(self.o_nodes, self.hh_nodes))
 
     def train(self, arr, target):
 
-        self.learning_rate = 0.2
-        # if erro >= 120:
-        #     self.learning_rate = 0.3
-        # elif erro >= 300:
-        #     self.learning_rate = 0.5
-        # elif erro >= 600:
-        #     self.learning_rate = 0.7
+        self.learning_rate = 0.1
         input = np.transpose(arr)
 
         # Input para Hidden
@@ -120,6 +129,8 @@ class RedeNeural:
         # Correção de pesos
         weigths_ih_deltas = np.dot(gradient_h, input_t)
         self.weigths_ih = np.add(self.weigths_ih, weigths_ih_deltas)
+
+        writeConfig(self.bias_ih, self.bias_hh, self.bias_ho, self.weigths_ih, self.weigths_hh, self.weigths_ho)
 
 
     def predict(self, arr):
